@@ -1,0 +1,75 @@
+apiVersion: toolchain.dev.openshift.com/v1alpha1
+kind: ToolchainConfig
+metadata:
+  name: config
+  namespace: toolchain-host-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "1" # on apply after operator was installed (in wave "0"), otherwise the CRD may not exist yet
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true # on the very first intall, the CRD will be missing since the operator has not been installed yet
+spec:
+  host:
+    automaticApproval:
+      enabled: true
+    capacityThresholds:
+      maxNumberOfSpacesPerMemberCluster:
+        member-sandbox-m2.ll9k.p1.openshiftapps.com: 2000
+        member-sandbox.x8i5.p1.openshiftapps.com: -1
+        member-sandbox-m3.1530.p1.openshiftapps.com: 2000
+      resourceCapacityThreshold:
+        defaultThreshold: 80
+    deactivation:
+      deactivatingNotificationDays: 3
+    metrics:
+      forceSynchronization: false
+    notifications:
+      adminEmail: admin.notifications@sandbox.openshift.com
+      secret:
+        mailgunAPIKey: mailgun.api.key
+        mailgunDomain: mailgun.domain
+        mailgunReplyToEmail: mailgun.replyto.email
+        mailgunSenderEmail: mailgun.sender.email
+        ref: host-operator-secret
+    registrationService:
+      analytics:
+        segmentWriteKey: LA8RSjFhzMatZxIGvsn2GVDnYV1fbElF
+        woopraDomain: prod.sandbox
+      auth:
+        authClientConfigRaw: '{
+                "realm": "redhat-external",
+                "auth-server-url": "https://sso.redhat.com/auth",
+                "ssl-required": "none",
+                "resource": "crtoolchain-public",
+                "clientId": "crtoolchain-public",
+                "public-client": true
+              }'
+        authClientLibraryURL: https://sso.redhat.com/auth/js/keycloak.js
+        authClientPublicKeysURL: https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/certs
+      environment: prod
+      registrationServiceURL: https://developers.redhat.com/developer-sandbox
+      verification:
+        enabled: true
+        excludedEmailDomains: 'redhat.com'
+        secret:
+          ref: host-operator-secret
+          twilioAccountSID: twilio.account.sid
+          twilioAuthToken: twilio.auth.token
+          twilioFromNumber: twilio.from_number
+    tiers:
+      defaultSpaceTier: base1ns
+  members:
+    default:
+      auth:
+        idp: DevSandbox
+      autoscaler:
+        bufferMemory: 14Gi
+        bufferReplicas: 4
+        deploy: true
+      che:
+        namespace: crw
+        routeName: devspaces
+        required: true
+        secret:
+          cheAdminUsernameKey: che.admin.username
+          cheAdminPasswordKey: che.admin.password
+          ref: member-operator-secret
+        userDeletionEnabled: true

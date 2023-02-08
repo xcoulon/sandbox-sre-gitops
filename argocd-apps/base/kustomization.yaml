@@ -3,3 +3,4 @@ kind: Kustomization
 
 resources:
   - sandbox-member-operator.yaml
+  - sandbox-host-operator.yaml
