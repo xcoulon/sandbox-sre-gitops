@@ -5,3 +5,4 @@ resources:
   - sandbox-member-operator.yaml
   - sandbox-host-operator.yaml
   - monitoring-prometheus.yaml
+  - monitoring-grafana.yaml
