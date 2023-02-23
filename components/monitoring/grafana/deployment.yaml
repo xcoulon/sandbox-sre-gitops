@@ -1,25 +1,4 @@
 # vscode-kubernetes-tools: exclude
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  namespace: appstudio-workload-monitoring
-  name: grafana
-  annotations:
-    argocd.argoproj.io/compare-options: IgnoreExtraneous
----
-# used by Grafana to connect to Prometheus via the OAuth Proxy (SA requires the "get ns" permission)
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: clusterrole-cluster-monitoring-view-grafana
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cluster-monitoring-view
-subjects:
-- kind: ServiceAccount
-  name: grafana
-  namespace: appstudio-workload-monitoring
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -106,8 +85,8 @@ spec:
         - --tls-cert-file=/etc/tls/private/tls.crt
         - --tls-key-file=/etc/tls/private/tls.key
         - --skip-auth-regex=^/metrics
-        - --github-org=redhat-appstudio-sre
-        - --github-team=stage
+        - --github-org=codeready-toolchain-teams
+        - --github-team=observability
         env:
         - name: OAUTH2_PROXY_CLIENT_ID
           valueFrom:
@@ -173,12 +152,18 @@ spec:
       - name: grafana-datasources
         projected:
           sources:
-          # 1 secret per remote cluster where metrics are collected
+          # 1 secret per cluster where metrics are collected
           - secret:
               name: thanos-querier-ds
               items:
               - key: thanos-querier-ds.yaml
                 path: thanos-querier-ds.yaml
+          # 1 secret per cdcluster where logs are collected
+          - secret:
+              name: loki-ds
+              items:
+              - key: loki-ds.yaml
+                path: loki-ds.yaml
       - name: grafana-config
         secret:
           defaultMode: 420
@@ -194,65 +179,3 @@ spec:
         secret:
           defaultMode: 420
           secretName: grafana-tls
----
-# ConfigMap for the Dashboards, which defines where the JSON files should be stored (and read from)
-# The files are "mounted from a ConfigMap" which is created by the `configure grafana` command
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  namespace: appstudio-workload-monitoring
-  name: grafana-dashboards
-data:
-  default.yaml: |
-    apiVersion: 1
-    providers:
-      - name: Default     # A uniquely identifiable name for the provider
-        folder:           # The default folder
-        type: file
-        options:
-          path: /var/lib/grafana/dashboards
-      - name: Spi
-        folder: spi
-        type: file
-        disableDeletion: true
-        options:
-          path: /var/lib/grafana/dashboards-spi
----
-# Route and service to provide a secured access to Grafana
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  namespace: appstudio-workload-monitoring
-  name: grafana
-  annotations:
-    kubernetes.io/tls-acme: "true"
-spec:
-  port:
-    targetPort: https
-  to:
-    kind: Service
-    name: grafana
-    weight: 100
-  tls:
-    insecureEdgeTerminationPolicy: Redirect
-    termination: reencrypt
----
-apiVersion: v1
-kind: Service
-metadata:
-  namespace: appstudio-workload-monitoring
-  name: grafana
-  annotations:
-    service.alpha.openshift.io/serving-cert-secret-name: grafana-tls
-  labels:
-    app: grafana
-spec:
-  ports:
-  - name: https
-    port: 3000
-    protocol: TCP
-    targetPort: https
-  selector:
-    app: grafana
-  sessionAffinity: None
-  type: ClusterIP

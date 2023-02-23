@@ -45,6 +45,8 @@ $ export GRAFANA_SECRET_NAME=`oc -n openshift-user-workload-monitoring get sa/gr
 $ export GRAFANA_OAUTH_TOKEN=`oc -n openshift-user-workload-monitoring create token grafana-oauth --bound-object-kind Secret --bound-object-name $GRAFANA_SECRET_NAME --duration=8760h` # requesting a token valid for 1 year
 
 $ export THANOS_QUERIER_URL=`oc get route/thanos-querier -n openshift-monitoring -o json | jq -r '.status.ingress[0].host'`
+
+$ export LOKI_URL=`oc get route/loki-oauth -n openshift-user-workload-monitoring -o json | jq -r '.status.ingress[0].host'`
 ```
 
 Using these values, run the following command on the **Host cluster**:
@@ -53,6 +55,10 @@ Using these values, run the following command on the **Host cluster**:
 $ export DATASOURCE_NAME="thanos-querier-ds" # unique per Prometheus cluster
 
 $ ./hack/setup-monitoring.sh grafana-datasource-secret $DATASOURCE_NAME $THANOS_QUERIER_URL $GRAFANA_OAUTH_TOKEN
+
+$ export DATASOURCE_NAME="loki-ds" # unique per Loki cluster
+
+$ ./hack/setup-monitoring.sh grafana-datasource-secret $DATASOURCE_NAME $LOKI_URL $GRAFANA_OAUTH_TOKEN
 ```
 
 Notes: 

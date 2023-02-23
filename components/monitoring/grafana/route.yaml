@@ -1,0 +1,18 @@
+---
+# Route and service to provide a secured access to Grafana
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: grafana
+  annotations:
+    kubernetes.io/tls-acme: "true"
+spec:
+  port:
+    targetPort: https
+  to:
+    kind: Service
+    name: grafana
+    weight: 100
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: reencrypt

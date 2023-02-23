@@ -1,0 +1,22 @@
+---
+# ConfigMap for the Dashboards, which defines where the JSON files should be stored (and read from)
+# The files are "mounted from a ConfigMap" which is created by the `configure grafana` command
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+data:
+  default.yaml: |
+    apiVersion: 1
+    providers:
+      - name: Default     # A uniquely identifiable name for the provider
+        folder:           # The default folder
+        type: file
+        options:
+          path: /var/lib/grafana/dashboards
+      - name: Spi
+        folder: spi
+        type: file
+        disableDeletion: true
+        options:
+          path: /var/lib/grafana/dashboards-spi
