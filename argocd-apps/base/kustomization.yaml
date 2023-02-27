@@ -7,3 +7,4 @@ resources:
   - monitoring-prometheus.yaml
   - monitoring-grafana.yaml
   - monitoring-loki.yaml
+  - monitoring-logging.yaml

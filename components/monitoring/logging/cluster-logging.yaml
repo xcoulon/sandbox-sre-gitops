@@ -1,0 +1,93 @@
+apiVersion: logging.openshift.io/v1
+kind: ClusterLogging
+metadata:
+  namespace: openshift-logging
+  name: instance
+spec:
+  managementState: Managed
+  collection:
+    logs:
+      type: fluentd
+      fluentd:
+        resources:
+          limits:
+            memory: 736Mi
+          requests:
+            cpu: 100m
+            memory: 736Mi
+
+--- 
+apiVersion: logging.openshift.io/v1
+kind: ClusterLogForwarder
+metadata:
+  namespace: openshift-logging
+  name: instance
+spec:
+  inputs:
+  - name: toolchain-host-operator
+    application:
+      namespaces:
+        - toolchain-host-operator
+      selector:
+        matchLabels: 
+          control-plane: controller-manager
+  - name: registration-service
+    application:
+      namespaces:
+        - toolchain-host-operator
+      selector:
+        matchLabels: 
+          name: registration-service
+  - name: toolchain-member-operator
+    application:
+      namespaces:
+        - toolchain-member-operator
+      selector:
+        matchLabels: 
+          control-plane: controller-manager
+  - name: toolchain-member-operator-webhook
+    application:
+      namespaces:
+        - toolchain-member-operator
+      selector:
+        matchLabels: 
+          app: member-operator-webhook
+  
+  outputs:
+  - name: loki
+    type: loki
+    url: 'http://loki.openshift-user-workload-monitoring.svc.cluster.local:3100'
+
+  pipelines:
+  - name: toolchain-host-operator-to-loki
+    inputRefs:
+      - toolchain-host-operator
+    outputRefs:
+      - loki
+    labels:
+      namespace: toolchain-host-operator
+    parse: json
+  - name: registration-service-to-loki
+    inputRefs:
+      - registration-service
+    outputRefs:
+      - loki
+    labels:
+      namespace: toolchain-host-operator
+    parse: json
+  - name: toolchain-member-operator-to-loki
+    inputRefs:
+      - toolchain-member-operator
+    outputRefs:
+      - loki
+    labels:
+      namespace: toolchain-member-operator
+    parse: json
+  - name: toolchain-member-operator-webhook-to-loki
+    inputRefs:
+      - toolchain-member-operator-webhook
+    outputRefs:
+      - loki
+    labels:
+      namespace: toolchain-member-operator
+    parse: json
