@@ -1,0 +1,17 @@
+# Route and service to provide a secured access to Loki
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: loki-oauth
+  labels:
+    provider: sandbox-sre
+  annotations:
+    kubernetes.io/tls-acme: "true"
+spec:
+  to:
+    kind: Service
+    name: loki-oauth
+  port:
+    targetPort: http-metrics
+  tls:
+    termination: reencrypt

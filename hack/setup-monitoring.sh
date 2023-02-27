@@ -61,21 +61,23 @@ grafana-oauth2-secret() {
 
 grafana-datasource-secret() {
 
-  if [[ $# -ne 3 ]]; then
+  if [[ $# -ne 4 ]]; then
     echo "invalid number of arguments"
     echo "usage:"
-    echo "  $0 grafana-datasource-secret NAME URL TOKEN"
+    echo "  $0 grafana-datasource-secret NAME TYPE URL TOKEN"
+    echo "  TYPE: 'prometheus' or 'loki'"
     exit 1
   fi
 
   NAME=$1
-  URL=$2
-  TOKEN=$3
+  TYPE=$2
+  URL=$3
+  TOKEN=$4
 
   DATA="apiVersion: 1
 datasources: 
 - name: $NAME
-  type: prometheus
+  type: $TYPE
   access: proxy
   url: https://$URL
   basicAuth: false

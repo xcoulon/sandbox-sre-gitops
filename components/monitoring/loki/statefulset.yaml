@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: loki
+  labels:
+    app: loki
+spec:
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  serviceName: loki
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: loki
+    spec:
+      serviceAccountName: loki
+      containers:
+        # Loki itself
+        - name: loki
+          image: grafana/loki:2.7.1
+          imagePullPolicy: IfNotPresent
+          args:
+            - "-config.file=/etc/loki/config.yaml"
+            - -log-config-reverse-order
+          ports:
+            - name: http-metrics
+              containerPort: 3100
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: http-metrics
+            initialDelaySeconds: 45
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http-metrics
+            initialDelaySeconds: 45
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            seccompProfile:
+              type: RuntimeDefault
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: config
+              mountPath: /etc/loki
+            - name: loki-storage
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+        # extra container to have an access from Grafana, using a SA token
+        - name: oauth-proxy
+          image: quay.io/openshift/origin-oauth-proxy:4.9.0
+          imagePullPolicy: IfNotPresent
+          ports:
+          - name: oauth-proxy
+            containerPort: 3101
+            protocol: TCP
+          args:
+          - --https-address=:3101
+          - --provider=openshift
+          - --openshift-service-account=loki # needed to run, not to check oauth
+          - --upstream=http://localhost:3100
+          - --tls-cert=/etc/tls/private/tls.crt
+          - --tls-key=/etc/tls/private/tls.key
+          - --cookie-secret=SECRET
+          # see https://github.com/openshift/oauth-proxy/#delegate-authentication-and-authorization-to-openshift-for-infrastructure
+          - --openshift-delegate-urls={"/":{"group":"","resource":"namespaces","verb":"get"}}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+          - mountPath: /etc/tls/private
+            name: secret-loki-oauth-tls
+            terminationGracePeriodSeconds: 4800
+      volumes:
+      - name: config
+        configMap:
+          name: loki-config
+      - name: secret-loki-oauth-tls
+        secret:
+          secretName: loki-oauth-tls
+      - name: tmp
+        emptyDir:
+          sizeLimit: 500Mi
+  volumeClaimTemplates:
+  - metadata:
+      name: loki-storage
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 15Gi

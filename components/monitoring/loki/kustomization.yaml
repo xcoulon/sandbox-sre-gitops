@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- service-account.yaml
+- statefulset.yaml
+- route.yaml
+- services.yaml
+
+namespace: "openshift-user-workload-monitoring"
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+# Loki config maps
+configMapGenerator:
+- name: loki-config
+  files:
+  - config.yaml=config.yaml
+
