@@ -86,7 +86,6 @@ spec:
           volumeMounts:
           - mountPath: /etc/tls/private
             name: secret-loki-oauth-tls
-            terminationGracePeriodSeconds: 4800
       volumes:
       - name: config
         configMap:
