@@ -3,6 +3,9 @@ kind: ClusterLogging
 metadata:
   namespace: openshift-logging
   name: instance
+  annotations:
+    argocd.argoproj.io/sync-wave: "1" # on apply after operator was installed (in wave "0"), otherwise the CRD may not exist yet
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true # on the very first intall, the CRD will be missing since the operator has not been installed yet
 spec:
   managementState: Managed
   collection:
@@ -22,6 +25,9 @@ kind: ClusterLogForwarder
 metadata:
   namespace: openshift-logging
   name: instance
+  annotations:
+    argocd.argoproj.io/sync-wave: "1" # on apply after operator was installed (in wave "0"), otherwise the CRD may not exist yet
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true # on the very first intall, the CRD will be missing since the operator has not been installed yet
 spec:
   inputs:
   - name: toolchain-host-operator
